@@ -1,0 +1,117 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id               String            @id @default(uuid())
+  name             String?
+  email            String            @unique
+  passwordHash     String?
+  sessions         ChatSession[]
+  optimizationRuns OptimizationRun[]
+  createdAt        DateTime          @default(now())
+
+  @@map("Users")
+}
+
+model ChatSession {
+  id        String    @id @default(uuid())
+  userId    String?
+  user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String    @default("New Conversation")
+  startedAt DateTime  @default(now())
+  messages  Message[]
+
+  @@map("Sessions")
+}
+
+model Message {
+  id        String      @id @default(uuid())
+  sessionId String
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      String      // "user" | "assistant"
+  content   String
+  createdAt DateTime    @default(now())
+  usage     Usage?
+
+  @@map("Messages")
+}
+
+model Usage {
+  id               String   @id @default(uuid())
+  messageId        String   @unique
+  message          Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  promptTokens     Int
+  completionTokens Int
+  totalTokens      Int
+  estimatedCost    Float
+  latency          Float    // in milliseconds
+  model            String
+  createdAt        DateTime @default(now())
+
+  @@map("Usages")
+}
+
+model Log {
+  id        String   @id @default(uuid())
+  level     String   // "info" | "warn" | "error"
+  message   String
+  context   String?  // JSON or text context
+  createdAt DateTime @default(now())
+
+  @@map("Logs")
+}
+
+model Analytics {
+  id               String   @id @default(uuid())
+  type             String   // "chat" | "optimize"
+  model            String
+  promptTokens     Int
+  completionTokens Int
+  totalTokens      Int
+  estimatedCost    Float
+  latency          Float    // in milliseconds
+  createdAt        DateTime @default(now())
+
+  @@map("Analytics")
+}
+
+model OptimizationRun {
+  id                      String   @id @default(uuid())
+  userId                  String?
+  user                    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  language                String
+  originalCode            String
+  optimizedCode           String
+  timeComplexityOriginal  String
+  timeComplexityOptimized String
+  spaceComplexityOriginal  String
+  spaceComplexityOptimized String
+  explanation             String
+  edgeCases               String[]
+  model                   String
+  promptTokens            Int
+  completionTokens        Int
+  totalTokens             Int
+  latency                 Float
+  cost                    Float
+  createdAt               DateTime @default(now())
+
+  @@map("OptimizationRuns")
+}
+
+model Feedback {
+  id        String   @id @default(uuid())
+  messageId String
+  rating    String   // "like" | "dislike"
+  comment   String?
+  createdAt DateTime @default(now())
+
+  @@map("Feedback")
+}
+
